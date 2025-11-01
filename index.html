@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <title>Deep Winter Palette</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #000;
+            overflow: hidden;
+            position: relative;
+            height: 100vh;
+            width: 100vw;
+        }
+
+        #videoContainer {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+
+        #video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        #overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 2;
+            display: flex;
+            flex-direction: column;
+            pointer-events: none;
+        }
+
+        #title {
+            text-align: center;
+            color: white;
+            font-size: 28px;
+            font-weight: 300;
+            padding: 40px 20px 20px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+            letter-spacing: 4px;
+            pointer-events: none;
+        }
+
+        #colorGrid {
+            flex: 1;
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 15px;
+            padding: 20px;
+            align-content: center;
+            justify-items: center;
+            pointer-events: all;
+        }
+
+        .color-circle {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+            position: relative;
+        }
+
+        .color-circle:active {
+            transform: scale(0.95);
+        }
+
+        .color-circle.selected {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 150px;
+            height: 150px;
+            z-index: 10;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+        }
+
+        .color-circle.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        #backButton {
+            position: fixed;
+            top: 40px;
+            right: 20px;
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: 1px solid rgba(255,255,255,0.3);
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-size: 16px;
+            cursor: pointer;
+            display: none;
+            z-index: 11;
+            backdrop-filter: blur(10px);
+            pointer-events: all;
+        }
+
+        #startButton {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #007AFF;
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            border-radius: 30px;
+            font-size: 18px;
+            cursor: pointer;
+            z-index: 11;
+            pointer-events: all;
+        }
+
+        /* Примерные цвета Deep Winter */
+        .color-1 { background-color: #A4182C; } /* cherry */
+        .color-2 { background-color: #95254D; } /* cerise */
+        .color-3 { background-color: #7441A4; } /* pancy */
+        .color-4 { background-color: #560574; } /* Hexing */
+        .color-5 { background-color: #184124; } /* canopy */
+        
+        .color-6 { background-color: #023D3D; } /* seabor */
+        .color-7 { background-color: #091754; } /* Purple */
+        .color-8 { background-color: #01010c; } /* Dark Magenta */
+        .color-9 { background-color: #930016; } /* Violet */
+        .color-10 { background-color: #49070a; } /* Medium Purple */
+        
+        .color-11 { background-color: #74000e; } /* Midnight Blue */
+        .color-12 { background-color: #64123e; } /* Navy */
+        .color-13 { background-color: #3E0A17; } /* Medium Blue */
+        .color-14 { background-color: #670028; } /* Royal Blue */
+        .color-15 { background-color: #8A0B32; } /* Dark Green */
+        
+        .color-16 { background-color: #6D07B5; } /* Dark Slate Gray */
+        .color-17 { background-color: #312286; } /* twill */
+        .color-18 { background-color: #011743; } /* marrow */
+        .color-19 { background-color: #0B2D78; } /* admiral */
+        .color-20 { background-color: #31063B; } /* Velora */
+        
+        .color-21 { background-color: #112437; } /* Dark Cyan */
+        .color-22 { background-color: #00392B; } /* Hot Pink */
+        .color-23 { background-color: #07090C; } /* Forest Green */
+        .color-24 { background-color: #123737; } /* Steel Blue */
+        .color-25 { background-color: #f5faff; } /* Saddle Brown */
+    </style>
+</head>
+<body>
+    <div id="videoContainer">
+        <video id="video" autoplay playsinline></video>
+    </div>
+    
+    <div id="overlay">
+        <h1 id="title">DEEP WINTER</h1>
+        <div id="colorGrid">
+            <!-- Цветовые круги будут добавлены через JavaScript -->
+        </div>
+    </div>
+    
+    <button id="backButton" onclick="resetView()">Назад</button>
+    <button id="startButton" onclick="startCamera()">Включить камеру</button>
+
+    <script>
+        let selectedColor = null;
+        const colorGrid = document.getElementById('colorGrid');
+        const backButton = document.getElementById('backButton');
+        const startButton = document.getElementById('startButton');
+        const video = document.getElementById('video');
+        
+        // Создаем цветовые круги
+        for (let i = 1; i <= 25; i++) {
+            const circle = document.createElement('div');
+            circle.className = `color-circle color-${i}`;
+            circle.onclick = () => selectColor(circle);
+            colorGrid.appendChild(circle);
+        }
+        
+        function startCamera() {
+            navigator.mediaDevices.getUserMedia({ 
+                video: { 
+                    facingMode: 'environment',
+                    width: { ideal: 1920 },
+                    height: { ideal: 1080 }
+                } 
+            })
+            .then(stream => {
+                video.srcObject = stream;
+                startButton.style.display = 'none';
+            })
+            .catch(err => {
+                console.error('Ошибка доступа к камере:', err);
+                alert('Не удалось получить доступ к камере. Пожалуйста, разрешите доступ к камере в настройках браузера.');
+            });
+        }
+        
+        function selectColor(circle) {
+            if (selectedColor) return;
+            
+            selectedColor = circle;
+            
+            // Прячем все остальные круги
+            const allCircles = document.querySelectorAll('.color-circle');
+            allCircles.forEach(c => {
+                if (c !== circle) {
+                    c.classList.add('hidden');
+                }
+            });
+            
+            // Увеличиваем выбранный круг
+            circle.classList.add('selected');
+            
+            // Показываем кнопку "Назад"
+            backButton.style.display = 'block';
+            
+            // Прячем заголовок
+            document.getElementById('title').style.display = 'none';
+        }
+        
+        function resetView() {
+            if (!selectedColor) return;
+            
+            // Убираем класс selected
+            selectedColor.classList.remove('selected');
+            
+            // Показываем все круги
+            const allCircles = document.querySelectorAll('.color-circle');
+            allCircles.forEach(c => {
+                c.classList.remove('hidden');
+            });
+            
+            // Прячем кнопку "Назад"
+            backButton.style.display = 'none';
+            
+            // Показываем заголовок
+            document.getElementById('title').style.display = 'block';
+            
+            selectedColor = null;
+        }
+        
+        // Проверяем поддержку камеры
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+            alert('Ваш браузер не поддерживает доступ к камере');
+            startButton.disabled = true;
+            startButton.textContent = 'Камера недоступна';
+        }
+    </script>
+</body>
+</html>
